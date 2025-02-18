@@ -1,4 +1,4 @@
-# :Land instability
+# Land instability
 
 [![Open in Streamlit]([https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://gdp-dashboard-template.streamlit.app/](https://land-instability-analysis.streamlit.app/?page=Dashboard))
 
