@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
 import hydralit_components as hc
-from plotting import create_and_render_plot
-from filter import dynamic_filter_and_operations
-from load import load_and_display_file
+from utils.plotting import create_and_render_plot
+from utils.filter import dynamic_filter_and_operations
+from utils.load import load_and_display_file
 import io
 
 def map_combined_datasets(df1, df2):
