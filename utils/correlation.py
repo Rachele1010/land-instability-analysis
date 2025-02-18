@@ -1,41 +1,23 @@
 import streamlit as st
 import pandas as pd
-import hydralit_components as hc
-from utils.plotting import create_and_render_plot
-from utils.filter import dynamic_filter_and_operations
-from utils.load import load_and_display_file
 import io
+from plotting import create_and_render_plot
 
-def map_combined_datasets(df1, df2):
+def map_combined_datasets(dataframes):
     """
-    Funzione per mappare i dataset combinati con colonne di latitudine e longitudine.
+    Funzione per mappare più dataset combinati con colonne di latitudine e longitudine.
     """
-    if df1 is not None:
-        lat_col_1 = [col for col in df1.columns if "lat" in col.lower()]
-        lon_col_1 = [col for col in df1.columns if "lon" in col.lower()]
-        if lat_col_1 and lon_col_1:
-            df1 = df1.rename(columns={lat_col_1[0]: 'lat', lon_col_1[0]: 'lon'})
-        else:
-            df1 = None
+    combined_df = pd.DataFrame(columns=['lat', 'lon'])
 
-    if df2 is not None:
-        lat_col_2 = [col for col in df2.columns if "lat" in col.lower()]
-        lon_col_2 = [col for col in df2.columns if "lon" in col.lower()]
-        if lat_col_2 and lon_col_2:
-            df2 = df2.rename(columns={lat_col_2[0]: 'lat', lon_col_2[0]: 'lon'})
-        else:
-            df2 = None
+    for df in dataframes:
+        if df is not None:
+            lat_col = [col for col in df.columns if "lat" in col.lower()]
+            lon_col = [col for col in df.columns if "lon" in col.lower()]
+            if lat_col and lon_col:
+                df = df.rename(columns={lat_col[0]: 'lat', lon_col[0]: 'lon'})
+                combined_df = pd.concat([combined_df, df[['lat', 'lon']]], ignore_index=True)
 
-    if df1 is not None and df2 is not None:
-        combined_df = pd.concat([df1[['lat', 'lon']], df2[['lat', 'lon']]], ignore_index=True).dropna()
-    elif df1 is not None:
-        combined_df = df1[['lat', 'lon']].dropna()
-    elif df2 is not None:
-        combined_df = df2[['lat', 'lon']].dropna()
-    else:
-        combined_df = None
-
-    if combined_df is not None and not combined_df.empty:
+    if not combined_df.empty:
         st.map(combined_df)
     else:
         st.warning("No valid latitude or longitude data available for map display.")
@@ -44,37 +26,43 @@ def correlation():
     """Dashboard per la gestione dei file con Drag & Drop."""
     st.header("Data Analysis and Plotting")
 
+    # Drag & Drop per il caricamento multiplo di file CSV
     uploaded_files = st.file_uploader("Drag & Drop your CSV files here", type=["csv"], accept_multiple_files=True)
+
+    if not uploaded_files:
+        st.info("No files uploaded yet.")
+        return
     
     df_list = []
-    if uploaded_files:
-        for uploaded_file in uploaded_files:
-            df = pd.read_csv(io.StringIO(uploaded_file.getvalue().decode("utf-8")))
-            df_list.append(df)
-            st.write(f"### {uploaded_file.name}")
-            st.dataframe(df)
     
-    if len(df_list) >= 1:
-        col1, col2 = st.columns([1, 1])
-        
-        with col1:
-            x_axis1 = st.selectbox("Select X axis for Dataset 1", df_list[0].columns.tolist(), key="x_axis1")
-            y_axis1 = st.selectbox("Select Y axis for Dataset 1", df_list[0].columns.tolist(), key="y_axis1")
-            plot_type1 = st.selectbox("Select plot type for Dataset 1", [
-                "Basic Scatter", "Basic Bar", "Basic Line", "Mixed Line and Bar", "Calendar Heatmap", "DataZoom"
-            ], key="plot_type_1")
-            create_and_render_plot(df_list[0], x_axis1, y_axis1, plot_type1)
-        
-        if len(df_list) >= 2:
-            with col2:
-                x_axis2 = st.selectbox("Select X axis for Dataset 2", df_list[1].columns.tolist(), key="x_axis2")
-                y_axis2 = st.selectbox("Select Y axis for Dataset 2", df_list[1].columns.tolist(), key="y_axis2")
-                plot_type2 = st.selectbox("Select plot type for Dataset 2", [
-                    "Basic Scatter", "Basic Bar", "Basic Line", "Mixed Line and Bar", "Calendar Heatmap", "DataZoom"
-                ], key="plot_type_2")
-                create_and_render_plot(df_list[1], x_axis2, y_axis2, plot_type2)
-                
-        map_combined_datasets(df_list[0], df_list[1] if len(df_list) > 1 else None)
+    # Caricamento e visualizzazione dei dati
+    for uploaded_file in uploaded_files:
+        df = pd.read_csv(io.StringIO(uploaded_file.getvalue().decode("utf-8")))
+        df_list.append(df)
+        st.write(f"### {uploaded_file.name}")
+        st.dataframe(df)
 
-    else:
-        st.info("No files uploaded yet.")
+    # Creazione dinamica dei controlli per ogni file caricato
+    for idx, df in enumerate(df_list):
+        st.subheader(f"Dataset {idx + 1}")
+
+        col1, col2, col3, col4 = st.columns([1, 1, 1, 2])
+
+        with col1:
+            x_axis = st.selectbox(f"Select X axis for Dataset {idx + 1}", df.columns.tolist(), key=f"x_axis_{idx}")
+
+        with col2:
+            y_axis = st.selectbox(f"Select Y axis for Dataset {idx + 1}", df.columns.tolist(), key=f"y_axis_{idx}")
+
+        with col3:
+            plot_type = st.selectbox(f"Select plot type for Dataset {idx + 1}", [
+                "Basic Scatter", "Basic Bar", "Basic Line", "Mixed Line and Bar", 
+                "Calendar Heatmap", "DataZoom"
+            ], key=f"plot_type_{idx}")
+
+        with col4:
+            if not df.empty:
+                create_and_render_plot(df, x_axis, y_axis, plot_type)
+
+    # Mappatura combinata di tutti i dataset caricati
+    map_combined_datasets(df_list)
