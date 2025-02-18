@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
-from plotting import create_and_render_plot
-from load import load_file, process_file
+from utils.plotting import create_and_render_plot
+from utils.load import load_file, process_file
 
 def visualization_section(df):
     """Handles the display of data table, map, and plotting."""
